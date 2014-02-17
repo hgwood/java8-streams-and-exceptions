@@ -3,7 +3,6 @@ package com.zenika.bulky;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
@@ -31,10 +30,6 @@ public class Bulky {
 
     public static <T, R> Function<Supplier<T>, Supplier<R>> lift(Function<T, R> f) {
         return originalSupplier -> () -> f.apply(originalSupplier.get());
-    }
-
-    public static <T, R> Predicate<Supplier<T>> liftp(Predicate<T> f) {
-        return supplier -> f.test(supplier.get());
     }
 
     public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> ignoringFailures() {
