@@ -1,0 +1,58 @@
+= Experimenting with Java 8, Streams and exceptions
+
+Si au lieu de traiter un stream de valeurs, on traite un stream de suppliers
+de valeur, alors le contrôle des exceptions peut être complètement délégué au
+collector. Du coup il devient simple de coder plusieurs collectors qui font
+ce qu'on désire : collecter tous les résultats sans les exceptions, collecter
+tous les résultats jusqu'à une exception, propager la première exception mais
+conserver les résultats déjà calculés etc. tout cela dans un nouveau stream
+que l'on peu à nouveau traiter.
+
+== Exemples
+
+[source,java]
+----
+Collection<String> data = asList("http://zenika", "invalid\nurl", "http://devoxx");
+data.stream()
+    .map(lazy(URI::create))
+    .collect(discarding(IllegalArgumentException.class));
+// => Stream("http://zenika", "http://devoxx")
+
+data.stream()
+    .map(lazy(URI::create))
+    .collect(upto(IllegalArgumentException.class));
+// => Stream("http://zenika")
+
+try {
+    data.stream()
+        .map(lazy(URI::create))
+        .collect(uptoAndThrow(IllegalArgumentException.class));
+catch (CollectException e) {
+    // => e.getCause() contient IllegalArgumentException
+    // => e.getResults() contient Stream("http://zenika")
+}
+try {
+    data.stream()
+        .map(lazy(URI::create))
+        .collect(throwingAtEnd(IllegalArgumentException.class));
+catch (CollectException e) {
+    // => e.getCauses() contient Collection(IllegalArgumentException)
+    // => e.getResults() contient Stream("http://zenika", "http://devoxx")
+}
+----
+
+Il est possible d'appliquer la même méthode avec des exceptions checked, en les mappant à une exception runtime d'abord :
+[source,java]
+----
+data.stream()
+    .map(lazy(sneaky(URI::new, e -> new CustomRuntimeException(e))))
+    .collect(discarding(CustomRuntimeException.class));
+----
+
+ou même plus simple si on fournit une exception unchecked cible par défaut :
+[source,java]
+----
+data.stream()
+    .map(lazy(sneaky(URI::new)))
+    .collect(discardingFailures());
+----

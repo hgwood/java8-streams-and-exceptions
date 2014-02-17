@@ -3,3 +3,6 @@ target/
 
 # IntelliJ
 *.iml
+
+# Asciidoctor
+README.html
