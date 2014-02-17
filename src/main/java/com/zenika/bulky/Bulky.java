@@ -20,18 +20,18 @@ public class Bulky {
      *     API.
      * </p>
      * @param f the function to wrap
-     * @param ignored unchecked exception to process as if they were checked
+     * @param runtimeExceptionClassesToWrap unchecked exception to wrap as if they were checked
      * @param <T> input type of the wrapped function
      * @param <R> output type of the wrapped function
      * @return a function that does the same thing as f, except it will throw the unchecked
      * {@link com.zenika.bulky.WrappedException} when the original function would have thrown checked exceptions
      */
-    public static <T, R> Function<T, R> sneaky(ThrowingFunction<T, R> f, Class<? extends RuntimeException>... ignored) {
+    public static <T, R> Function<T, R> sneaky(ThrowingFunction<T, R> f, Class<? extends RuntimeException>... runtimeExceptionClassesToWrap) {
         return input -> {
             try {
                 return f.apply(input);
             } catch (RuntimeException e) {
-                if (!asList(ignored).contains(e.getClass())) throw e;
+                if (!asList(runtimeExceptionClassesToWrap).contains(e.getClass())) throw e;
                 else throw new WrappedException(e);
             } catch (Exception e) {
                 throw new WrappedException(e);
@@ -91,14 +91,16 @@ public class Bulky {
         return liftToSuppliers(f);
     }
 
-    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> ignoringFailures() {
+    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> discarding(Class<? extends RuntimeException>... discarded) {
+        if (discarded.length == 0)
+            throw new IllegalArgumentException("must at least provide one exception class to discard");
         return Collector.of(
             ArrayList::new,
             (accumulator, element) -> {
                 try {
                     accumulator.add(element.get());
-                } catch (WrappedException e) {
-                    // swallow
+                } catch (RuntimeException e) {
+                    if (!asList(discarded).contains(e.getClass())) throw e;
                 }
             },
             (left, right) -> { left.addAll(right); return left; },
@@ -106,18 +108,26 @@ public class Bulky {
         );
     }
 
-    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> uptoFailure() {
-        return new UpToFailureCollector<>();
+    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> discardingFailures() {
+        return discarding(WrappedException.class);
     }
 
-    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> throwingWithPartialResult() throws BulkyException {
+    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> upTo(Class<? extends RuntimeException> exceptionToCatch) {
+        return new UpToFailureCollector<>(exceptionToCatch);
+    }
+
+    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> upToFailure() {
+        return upTo(WrappedException.class);
+    }
+
+    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> upToAndThrow(Class<? extends RuntimeException> exceptionToCatch) throws CollectException {
         return Collector.of(
             ArrayList::new,
             (accumulator, element) -> {
                 try {
                     accumulator.add(element.get());
-                } catch (WrappedException e) {
-                    throw new BulkyException(e.getCause(), accumulator);
+                } catch (RuntimeException e) {
+                    if (e.getClass().equals(exceptionToCatch)) throw new CollectException(e.getCause(), accumulator);
                 }
             },
             (left, right) -> { left.addAll(right); return left; },

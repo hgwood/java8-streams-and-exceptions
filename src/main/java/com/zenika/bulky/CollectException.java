@@ -2,11 +2,11 @@ package com.zenika.bulky;
 
 import java.util.Collection;
 
-public class BulkyException extends RuntimeException {
+public class CollectException extends RuntimeException {
 
     private final Collection<?> partialResult;
 
-    public BulkyException(Throwable cause, Collection<?> partialResult) {
+    public CollectException(Throwable cause, Collection<?> partialResult) {
         super(cause);
         this.partialResult = partialResult;
     }

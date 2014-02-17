@@ -13,8 +13,13 @@ import java.util.stream.Stream;
 
 public class UpToFailureCollector<T> implements Collector<Supplier<T>, Collection<T>, Stream<T>> {
 
+    private final Class<? extends RuntimeException> runtimeExceptionClassToCatch;
     private final Set<Characteristics> characteristics = new HashSet<>();
     private boolean collecting = true;
+
+    public UpToFailureCollector(Class<? extends RuntimeException> runtimeExceptionClassToCatch) {
+        this.runtimeExceptionClassToCatch = runtimeExceptionClassToCatch;
+    }
 
     @Override public Supplier<Collection<T>> supplier() {
         return ArrayList::new;
@@ -25,8 +30,8 @@ public class UpToFailureCollector<T> implements Collector<Supplier<T>, Collectio
             if (!collecting) return;
             try {
                 accumulator.add(element.get());
-            } catch (WrappedException e) {
-                collecting = false;
+            } catch (RuntimeException e) {
+                if (e.getClass().equals(runtimeExceptionClassToCatch)) collecting = false;;
             }
         };
     }

@@ -18,70 +18,67 @@ public class AcceptanceTest
 {
     private final List<String> uris = asList("http://validUri", "ftp://anotherValidUri", "invalid\nuri", "http://goldenUri");
 
-    @Test public void ignoringFailures_returns_all_result_successfully_computed() throws Exception {
+    @Test public void discarding_returns_all_result_successfully_computed() {
         Collection<URI> result = uris.stream()
-            .map(lazy(sneaky(URI::new)))
-            .collect(ignoringFailures())
+            .map(lazy(URI::create))
+            .collect(discarding(IllegalArgumentException.class))
             .collect(toList());
-        assertThat(result, contains(new URI(uris.get(0)), new URI(uris.get(1)), new URI(uris.get(3))));
+        assertThat(result, contains(URI.create(uris.get(0)), URI.create(uris.get(1)), URI.create(uris.get(3))));
     }
 
     @Test(expected = NullPointerException.class)
-    public void ignoringFailures_lets_runtime_exceptions_propagate_normally() throws Exception {
+    public void discardingFailures_lets_runtime_exceptions_propagate_normally() {
         uris.stream()
             .map(lazy(uri -> { throw new NullPointerException(); }))
-            .collect(ignoringFailures())
+            .collect(discardingFailures())
             .collect(toList());
     }
 
-    @Test public void ignoringFailures_can_ignore_custom_runtime_exceptions() throws Exception {
-        Collection<String> result = uris.stream()
-            .map(lazy(sneaky(uri -> {
-                if (uri.startsWith("http")) return uri;
-                else throw new CustomRuntimeException();
-            }, CustomRuntimeException.class)))
-            .collect(ignoringFailures())
-            .collect(toList());
-        assertThat(result, contains(uris.get(0), uris.get(3)));
-    }
-
-    @Test public void ignoringFailures_supports_chained_maps_using_lift() throws Exception {
+    @Test public void lazylift_adds_chained_maps_support() {
         Collection<URI> result = uris.stream()
-            .map(lazy(sneaky(URI::new)))
-            .map(lazylift(sneaky(uri -> {
-                if (uri.toString().startsWith("ftp")) throw new URISyntaxException("", "");
+            .map(lazy(URI::create))
+            .map(lazylift(uri -> {
+                if (uri.toString().startsWith("ftp")) throw new UnsupportedOperationException();
                 else return uri;
-            })))
-            .collect(ignoringFailures())
+            }))
+            .collect(discarding(IllegalArgumentException.class, UnsupportedOperationException.class))
             .collect(toList());
-        assertThat(result, contains(new URI(uris.get(0)), new URI(uris.get(3))));
+        assertThat(result, contains(URI.create(uris.get(0)), URI.create(uris.get(3))));
     }
 
-    @Test public void upToFailure_returns_results_successfully_computed_before_the_failure() throws Exception {
+    @Test public void upTo_returns_results_successfully_computed_before_the_failure() {
         Collection<URI> result = uris.stream()
-            .map(lazy(sneaky(URI::new)))
-            .collect(uptoFailure())
+            .map(lazy(URI::create))
+            .collect(upTo(IllegalArgumentException.class))
             .collect(toList());
-        assertThat(result, contains(new URI(uris.get(0)), new URI(uris.get(1))));
+        assertThat(result, contains(URI.create(uris.get(0)), URI.create(uris.get(1))));
     }
 
-    @Test public void throwingWithPartialResult_throws_an_exception_containing_both_the_cause_and_the_results_successfully_computed_before_the_failure() throws Exception {
+    @Test public void upToAndThrow_throws_an_exception_containing_both_the_cause_and_the_results_successfully_computed_before_the_failure() {
         try {
             uris.stream()
-                .map(lazy(sneaky(URI::new)))
-                .collect(throwingWithPartialResult());
+                .map(lazy(URI::create))
+                .collect(upToAndThrow(IllegalArgumentException.class));
             fail();
-        } catch (BulkyException e) {
+        } catch (CollectException e) {
             assertThat(e.getCause(), instanceOf(URISyntaxException.class));
-            assertThat(e.partialResult(), contains(new URI(uris.get(0)), new URI(uris.get(1))));
+            assertThat(e.partialResult(), contains(URI.create(uris.get(0)), URI.create(uris.get(1))));
         }
     }
 
-    @Test public void throwingWithPartialResult_does_not_throw_an_exception_if_all_results_compute_successfully() throws Exception {
+    @Test public void upToAndThrow_does_not_throw_an_exception_if_all_results_compute_successfully() throws Exception {
         Collection<URI> result = uris.stream().limit(2)
-            .map(lazy(sneaky(URI::new)))
-            .collect(throwingWithPartialResult())
+            .map(lazy(URI::create))
+            .collect(upToAndThrow(IllegalArgumentException.class))
             .collect(toList());
         assertThat(result, contains(new URI(uris.get(0)), new URI(uris.get(1))));
+    }
+
+    @Test public void sneaky_makes_it_work_with_checked_exceptions() {
+        Collection<URI> result = uris.stream()
+            .map(lazy(sneaky(URI::new)))
+            .collect(discardingFailures())
+            .collect(toList());
+        assertThat(result, contains(URI.create(uris.get(0)), URI.create(uris.get(1)), URI.create(uris.get(3))));
     }
 }
