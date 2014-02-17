@@ -48,7 +48,7 @@ public class AcceptanceTest
     @Test public void ignoringFailures_supports_chained_maps_using_lift() throws Exception {
         Collection<URI> result = uris.stream()
             .map(lazy(sneaky(URI::new)))
-            .map(lift(sneaky(uri -> {
+            .map(lazylift(sneaky(uri -> {
                 if (uri.toString().startsWith("ftp")) throw new URISyntaxException("", "");
                 else return uri;
             })))
