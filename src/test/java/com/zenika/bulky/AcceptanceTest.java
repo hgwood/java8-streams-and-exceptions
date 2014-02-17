@@ -10,8 +10,7 @@ import java.util.List;
 import static com.zenika.bulky.Bulky.*;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -33,6 +32,17 @@ public class AcceptanceTest
             .map(lazy(uri -> { throw new NullPointerException(); }))
             .collect(ignoringFailures())
             .collect(toList());
+    }
+
+    @Test public void ignoringFailures_can_ignore_custom_runtime_exceptions() throws Exception {
+        Collection<String> result = uris.stream()
+            .map(lazy(sneaky(uri -> {
+                if (uri.startsWith("http")) return uri;
+                else throw new CustomRuntimeException();
+            }, CustomRuntimeException.class)))
+            .collect(ignoringFailures())
+            .collect(toList());
+        assertThat(result, contains(uris.get(0), uris.get(3)));
     }
 
     @Test public void ignoringFailures_supports_chained_maps_using_lift() throws Exception {

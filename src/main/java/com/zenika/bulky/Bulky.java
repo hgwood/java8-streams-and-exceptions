@@ -8,14 +8,17 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
+import static java.util.Arrays.asList;
+
 public class Bulky {
 
-    public static <T, R> Function<T, R> sneaky(ThrowingFunction<T, R> f) {
+    public static <T, R> Function<T, R> sneaky(ThrowingFunction<T, R> f, Class<? extends RuntimeException>... ignored) {
         return input -> {
             try {
                 return f.apply(input);
             } catch (RuntimeException e) {
-                throw e;
+                if (!asList(ignored).contains(e.getClass())) throw e;
+                else throw new WrappedException(e);
             } catch (Exception e) {
                 throw new WrappedException(e);
             }
