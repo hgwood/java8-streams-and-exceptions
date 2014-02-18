@@ -11,14 +11,16 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
+import static java.util.Arrays.asList;
+
 public class UpToFailureCollector<T> implements Collector<Supplier<T>, Collection<T>, Stream<T>> {
 
-    private final Class<? extends RuntimeException> runtimeExceptionClassToCatch;
+    private final Collection<Class<? extends RuntimeException>> failures;
     private final Set<Characteristics> characteristics = new HashSet<>();
     private boolean collecting = true;
 
-    public UpToFailureCollector(Class<? extends RuntimeException> runtimeExceptionClassToCatch) {
-        this.runtimeExceptionClassToCatch = runtimeExceptionClassToCatch;
+    public UpToFailureCollector(Class<? extends RuntimeException>... failures) {
+        this.failures = asList(failures);
     }
 
     @Override public Supplier<Collection<T>> supplier() {
@@ -31,7 +33,8 @@ public class UpToFailureCollector<T> implements Collector<Supplier<T>, Collectio
             try {
                 accumulator.add(element.get());
             } catch (RuntimeException e) {
-                if (e.getClass().equals(runtimeExceptionClassToCatch)) collecting = false;;
+                if (failures.contains(e.getClass()))
+                    collecting = false;;
             }
         };
     }

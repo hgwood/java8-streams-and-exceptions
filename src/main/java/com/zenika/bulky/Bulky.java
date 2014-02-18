@@ -95,8 +95,8 @@ public class Bulky {
     }
 
     public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> discarding(
-            Class<? extends RuntimeException>... discarded) {
-        if (discarded.length == 0)
+            Class<? extends RuntimeException>... failures) {
+        if (failures.length == 0)
             throw new IllegalArgumentException("must at least provide one exception class to discard");
         return Collector.of(
             ArrayList::new,
@@ -104,7 +104,7 @@ public class Bulky {
                 try {
                     accumulator.add(element.get());
                 } catch (RuntimeException e) {
-                    if (!asList(discarded).contains(e.getClass())) throw e;
+                    if (!asList(failures).contains(e.getClass())) throw e;
                 }
             },
             (left, right) -> { left.addAll(right); return left; },
@@ -117,8 +117,8 @@ public class Bulky {
     }
 
     public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> upTo(
-            Class<? extends RuntimeException> exceptionToCatch) {
-        return new UpToFailureCollector<>(exceptionToCatch);
+            Class<? extends RuntimeException>... failures) {
+        return new UpToFailureCollector<>(failures);
     }
 
     public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> upToFailure() {
@@ -126,14 +126,14 @@ public class Bulky {
     }
 
     public static <T> Collector<Supplier<T>, ImmutableList.Builder<T>, Stream<T>> upToAndThrow(
-            Class<? extends RuntimeException> exceptionClassesToCatch) throws FailFastCollectException {
+            Class<? extends RuntimeException>... failures) throws FailFastCollectException {
         return Collector.of(
             ImmutableList::builder,
             (accumulator, element) -> {
                 try {
                     accumulator.add(element.get());
                 } catch (RuntimeException e) {
-                    if (e.getClass().equals(exceptionClassesToCatch))
+                    if (asList(failures).contains(e.getClass()))
                         throw new FailFastCollectException(e, accumulator.build());
                 }
             },
@@ -143,14 +143,14 @@ public class Bulky {
     }
 
     public static <T> Collector<Supplier<T>, FailAtEndAccumulator<T>, Stream<T>> throwingAtEnd(
-            Class<? extends RuntimeException> exceptionClassesToCatch) throws FailAtEndCollectException {
+            Class<? extends RuntimeException>... failures) throws FailAtEndCollectException {
         return Collector.of(
             FailAtEndAccumulator::new,
             (accumulator, element) -> {
                 try {
                     accumulator.addResult(element.get());
                 } catch (RuntimeException e) {
-                    if (e.getClass().equals(exceptionClassesToCatch))
+                    if (asList(failures).contains(e.getClass()))
                         accumulator.addFailure(e);
                 }
             },
