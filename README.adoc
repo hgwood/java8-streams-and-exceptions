@@ -1,47 +1,65 @@
-= Experimenting with Java 8, Streams and exceptions
+= Experimenting with Java 8, streams and exceptions
+Hugo Wood <hx4.5@free.fr>
 
-Si au lieu de traiter un stream de valeurs, on traite un stream de suppliers
-de valeur, alors le contrôle des exceptions peut être complètement délégué au
-collector. Du coup il devient simple de coder plusieurs collectors qui font
-ce qu'on désire : collecter tous les résultats sans les exceptions, collecter
-tous les résultats jusqu'à une exception, propager la première exception mais
-conserver les résultats déjà calculés etc. tout cela dans un nouveau stream
-que l'on peu à nouveau traiter.
+The stream API, being FP-inspired, doesn't play with exceptions very well. For example let's say we want to map a set
+of URI strings to URI objects:
+[source,java]
+----
+uriStrings.stream().map(URI::create).collect(toList());
+----
 
-== Exemples
+If one of the strings is not a valid URL, +map()+ still runs OK because it does nothing but register the map operation,
+however, the +toList()+ collector does call +URI::create+, which throws an +IllegalArgumentException+ and the overall
+operation fails without hope of retrieving the URIs that were valid.
+
+The code in this repository is my attempt to solve this problem. The idea is simple: the collector has to be able to
+control when the exception-throwing operation is called in order to catch exceptions and process them, so the call has
+to be delayed. To achieve this, values are mapped to supplier of values.
+
+== Examples
 
 [source,java]
 ----
 Collection<String> data = asList("http://zenika", "invalid\nurl", "http://devoxx");
+
 data.stream()
+    // lazy() wraps URI::create into a function that returns suppliers, in order to delay the call to URI::create
     .map(lazy(URI::create))
+    // the collector can consequently catch the exceptions and swallow them, effectively collecting only valid URIs
+    // the exception to swallow has to be specified in order to correctly propagate other runtime exceptions
     .collect(discarding(IllegalArgumentException.class));
-// => Stream("http://zenika", "http://devoxx")
+// => Stream(URI("http://zenika"), URI("http://devoxx"))
 
 data.stream()
     .map(lazy(URI::create))
+    // this collector swallows the exception too, but it does not continue to read the stream
     .collect(upto(IllegalArgumentException.class));
-// => Stream("http://zenika")
+// => Stream(URI("http://zenika"))
 
 try {
     data.stream()
         .map(lazy(URI::create))
+        // this collector propagates the first thrown exception, but valid URIs that have already been processed are
+        //accessible
         .collect(uptoAndThrow(IllegalArgumentException.class));
-catch (CollectException e) {
-    // => e.getCause() contient IllegalArgumentException
-    // => e.getResults() contient Stream("http://zenika")
+catch (FailFastCollectException e) {
+    // => e.getCause() returns the IllegalArgumentException
+    // => e.getResults() returns Stream(URI("http://zenika"))
 }
+
 try {
     data.stream()
         .map(lazy(URI::create))
+        // this collector reads the whole stream and collects all valid URIs as well as all the exceptions that were
+        // thrown.
         .collect(throwingAtEnd(IllegalArgumentException.class));
 catch (CollectException e) {
-    // => e.getCauses() contient Collection(IllegalArgumentException)
-    // => e.getResults() contient Stream("http://zenika", "http://devoxx")
+    // => e.getCauses() returns Collection(IllegalArgumentException)
+    // => e.getResults() returns Stream(URI("http://zenika"), URI("http://devoxx"))
 }
 ----
 
-Il est possible d'appliquer la même méthode avec des exceptions checked, en les mappant à une exception runtime d'abord :
+This method can also be used on checked exceptions, if they are first wrapped into unchecked ones.
 [source,java]
 ----
 data.stream()
@@ -49,7 +67,7 @@ data.stream()
     .collect(discarding(CustomRuntimeException.class));
 ----
 
-ou même plus simple si on fournit une exception unchecked cible par défaut :
+The above code is simplified if the library provides a default wrapping.
 [source,java]
 ----
 data.stream()
