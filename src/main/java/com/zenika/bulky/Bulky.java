@@ -1,5 +1,7 @@
 package com.zenika.bulky;
 
+import com.google.common.collect.ImmutableList;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.function.Function;
@@ -26,7 +28,8 @@ public class Bulky {
      * @return a function that does the same thing as f, except it will throw the unchecked
      * {@link com.zenika.bulky.WrappedException} when the original function would have thrown checked exceptions
      */
-    public static <T, R> Function<T, R> sneaky(ThrowingFunction<T, R> f, Class<? extends RuntimeException>... runtimeExceptionClassesToWrap) {
+    public static <T, R> Function<T, R> sneaky(
+            ThrowingFunction<T, R> f, Class<? extends RuntimeException>... runtimeExceptionClassesToWrap) {
         return input -> {
             try {
                 return f.apply(input);
@@ -91,7 +94,8 @@ public class Bulky {
         return liftToSuppliers(f);
     }
 
-    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> discarding(Class<? extends RuntimeException>... discarded) {
+    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> discarding(
+            Class<? extends RuntimeException>... discarded) {
         if (discarded.length == 0)
             throw new IllegalArgumentException("must at least provide one exception class to discard");
         return Collector.of(
@@ -112,7 +116,8 @@ public class Bulky {
         return discarding(WrappedException.class);
     }
 
-    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> upTo(Class<? extends RuntimeException> exceptionToCatch) {
+    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> upTo(
+            Class<? extends RuntimeException> exceptionToCatch) {
         return new UpToFailureCollector<>(exceptionToCatch);
     }
 
@@ -120,42 +125,41 @@ public class Bulky {
         return upTo(WrappedException.class);
     }
 
-    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> upToAndThrow(Class<? extends RuntimeException> exceptionClassesToCatch) throws CollectException {
+    public static <T> Collector<Supplier<T>, ImmutableList.Builder<T>, Stream<T>> upToAndThrow(
+            Class<? extends RuntimeException> exceptionClassesToCatch) throws FailFastCollectException {
         return Collector.of(
-            ArrayList::new,
+            ImmutableList::builder,
             (accumulator, element) -> {
                 try {
                     accumulator.add(element.get());
                 } catch (RuntimeException e) {
-                    if (e.getClass().equals(exceptionClassesToCatch)) throw new CollectException(e, accumulator);
+                    if (e.getClass().equals(exceptionClassesToCatch))
+                        throw new FailFastCollectException(e, accumulator.build());
                 }
             },
-            (left, right) -> { left.addAll(right); return left; },
-            result -> result.stream()
+            (left, right) -> { left.addAll(right.build()); return left; },
+            result -> result.build().stream()
         );
     }
 
-    public static <T> Collector<Supplier<T>, CollectException, Stream<T>> throwingAtEnd(Class<? extends RuntimeException> exceptionClassesToCatch) {
-        Collection<Throwable> exceptions = new ArrayList<>();
-        Collection<T> results = new ArrayList<>();
+    public static <T> Collector<Supplier<T>, FailAtEndAccumulator<T>, Stream<T>> throwingAtEnd(
+            Class<? extends RuntimeException> exceptionClassesToCatch) throws FailAtEndCollectException {
         return Collector.of(
-            () -> new CollectException(exceptions, results),
+            FailAtEndAccumulator::new,
             (accumulator, element) -> {
                 try {
-                    accumulator.getResults().add(element.get());
+                    accumulator.addResult(element.get());
                 } catch (RuntimeException e) {
-                    if (e.getClass().equals(exceptionClassesToCatch)) accumulator.getCauses().add(e);
+                    if (e.getClass().equals(exceptionClassesToCatch))
+                        accumulator.addFailure(e);
                 }
             },
-            (left, right) -> {
-                left.getCauses().addAll(right.getCauses());
-                left.getResults().addAll(right.getResults());
-                return left; },
+            FailAtEndAccumulator::combine,
             accumulator -> {
-                if (accumulator.getCauses().isEmpty()) {
-                    return ((Collection<T>)accumulator.getResults()).stream();
+                if (accumulator.hasFailures()) {
+                    throw accumulator.unloadInto(FailAtEndCollectException::new);
                 } else {
-                    throw accumulator;
+                    return accumulator.unloadInto(results -> results.stream());
                 }
             }
         );

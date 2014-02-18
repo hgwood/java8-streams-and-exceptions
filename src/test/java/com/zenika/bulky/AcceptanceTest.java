@@ -3,7 +3,6 @@ package com.zenika.bulky;
 import org.junit.Test;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.List;
 
@@ -65,7 +64,7 @@ public class AcceptanceTest
                 .map(lazy(URI::create))
                 .collect(upToAndThrow(IllegalArgumentException.class));
             fail();
-        } catch (CollectException e) {
+        } catch (FailFastCollectException e) {
             assertThat(e.getCause(), instanceOf(IllegalArgumentException.class));
             assertThat(e.getResults(), contains(URI.create(uris.get(0)), URI.create(uris.get(1))));
         }
@@ -85,7 +84,7 @@ public class AcceptanceTest
                 .map(lazy(URI::create))
                 .collect(throwingAtEnd(IllegalArgumentException.class));
             fail();
-        } catch (CollectException e) {
+        } catch (FailAtEndCollectException e) {
             assertThat(e.getCauses(), contains(
                 instanceOf(IllegalArgumentException.class),
                 instanceOf(IllegalArgumentException.class)));
