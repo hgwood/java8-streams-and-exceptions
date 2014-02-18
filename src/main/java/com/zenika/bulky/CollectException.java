@@ -11,7 +11,7 @@ public class CollectException extends RuntimeException {
         this.partialResult = partialResult;
     }
 
-    public <T> Collection<T> partialResult() {
+    public <T> Collection<T> getResults() {
         return (Collection<T>)partialResult;
     }
 }

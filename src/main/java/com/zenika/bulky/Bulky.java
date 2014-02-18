@@ -120,14 +120,14 @@ public class Bulky {
         return upTo(WrappedException.class);
     }
 
-    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> upToAndThrow(Class<? extends RuntimeException> exceptionToCatch) throws CollectException {
+    public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> upToAndThrow(Class<? extends RuntimeException> exceptionClassesToCatch) throws CollectException {
         return Collector.of(
             ArrayList::new,
             (accumulator, element) -> {
                 try {
                     accumulator.add(element.get());
                 } catch (RuntimeException e) {
-                    if (e.getClass().equals(exceptionToCatch)) throw new CollectException(e.getCause(), accumulator);
+                    if (e.getClass().equals(exceptionClassesToCatch)) throw new CollectException(e.getCause(), accumulator);
                 }
             },
             (left, right) -> { left.addAll(right); return left; },

@@ -62,7 +62,7 @@ public class AcceptanceTest
             fail();
         } catch (CollectException e) {
             assertThat(e.getCause(), instanceOf(URISyntaxException.class));
-            assertThat(e.partialResult(), contains(URI.create(uris.get(0)), URI.create(uris.get(1))));
+            assertThat(e.getResults(), contains(URI.create(uris.get(0)), URI.create(uris.get(1))));
         }
     }
 
