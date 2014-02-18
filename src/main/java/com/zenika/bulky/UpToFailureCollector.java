@@ -13,6 +13,9 @@ import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 
+/**
+ * @see com.zenika.bulky.Bulky#upTo(Class[])
+ */
 public class UpToFailureCollector<T> implements Collector<Supplier<T>, Collection<T>, Stream<T>> {
 
     private final Collection<Class<? extends RuntimeException>> failures;

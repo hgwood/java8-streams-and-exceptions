@@ -43,8 +43,8 @@ public class Bulky {
     }
 
     /**
+     * Returns a function that wraps a value in a {@link java.util.function.Supplier} of that value.
      * @param <T> the type of the value to wrap
-     * @return a function that wraps a value in a {@link java.util.function.Supplier} of that value
      */
     public static <T> Function<T, Supplier<T>> toSupplier() {
         return input -> () -> input;
@@ -94,6 +94,11 @@ public class Bulky {
         return liftToSuppliers(f);
     }
 
+    /**
+     * Returns a collector that filters out computations that failed with the specified exceptions classes.
+     * @param failures exceptions to discard
+     * @param <T> type of the results
+     */
     public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> discarding(
             Class<? extends RuntimeException>... failures) {
         if (failures.length == 0)
@@ -112,19 +117,43 @@ public class Bulky {
         );
     }
 
+    /**
+     * Same as {@link #discarding(Class[])} but only {@link com.zenika.bulky.WrappedException} is treated as a failure.
+     * Designed to be used in conjonction with {@link #sneaky(ThrowingFunction, Class[])} with no exceptions specified.
+     * @param <T> type of the results
+     */
     public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> discardingFailures() {
         return discarding(WrappedException.class);
     }
 
+    /**
+     * Returns a collector that only computes and retains results until one of the specified exception is raised.
+     * The exception is then swallowed and the computed results are returned as a new stream.
+     * @param failures exceptions that should interrupt the overall operation
+     * @param <T> type of the results
+     */
     public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> upTo(
             Class<? extends RuntimeException>... failures) {
         return new UpToFailureCollector<>(failures);
     }
 
+    /**
+     * Same as {@link #upTo(Class[])} but {@link com.zenika.bulky.WrappedException} is treated as a failure.
+     * Designed to be used in conjonction with {@link #sneaky(ThrowingFunction, Class[])} with no exceptions specified.
+     * @param <T> type of the results
+     */
     public static <T> Collector<Supplier<T>, Collection<T>, Stream<T>> upToFailure() {
         return upTo(WrappedException.class);
     }
 
+    /**
+     * Returns a collector that only computes and retains results until one of the specified exception is raised.
+     * The exception is then wrapped and thrown as a {@link com.zenika.bulky.FailFastCollectException} also containing
+     * the computed results.
+     * @param failures exceptions that should interrupt the overall operation
+     * @param <T> type of the results
+     * @throws FailFastCollectException if a result fails to compute
+     */
     public static <T> Collector<Supplier<T>, ImmutableList.Builder<T>, Stream<T>> upToAndThrow(
             Class<? extends RuntimeException>... failures) throws FailFastCollectException {
         return Collector.of(
@@ -142,6 +171,16 @@ public class Bulky {
         );
     }
 
+    /**
+     * Returns a collector that consumes the entire stream even if an exception is thrown, but throws
+     * {@link com.zenika.bulky.FailAtEndCollectException} at the end if it was the case. All successfully computed
+     * results and all thrown exceptions are accessible through {@link FailAtEndCollectException#getResults()} and
+     * {@link FailAtEndCollectException#getCauses()}. If no exception is thrown before the end of the stream, a new
+     * stream with the results is returned.
+     * @param failures exceptions that should thrown at the end
+     * @param <T> type of the results
+     * @throws FailAtEndCollectException if a result fails to compute
+     */
     public static <T> Collector<Supplier<T>, FailAtEndAccumulator<T>, Stream<T>> throwingAtEnd(
             Class<? extends RuntimeException>... failures) throws FailAtEndCollectException {
         return Collector.of(
