@@ -16,7 +16,12 @@ import static org.junit.Assert.fail;
 
 public class AcceptanceTest
 {
-    private final List<String> uris = asList("http://validUri", "ftp://anotherValidUri", "invalid\nuri", "http://goldenUri");
+    private final List<String> uris = asList(
+        "http://validUri",
+        "ftp://anotherValidUri",
+        "invalid\nuri",
+        "http://goldenUri",
+        "another\ninvalid");
 
     @Test public void discarding_returns_all_result_successfully_computed() {
         Collection<URI> result = uris.stream()
@@ -72,6 +77,20 @@ public class AcceptanceTest
             .collect(upToAndThrow(IllegalArgumentException.class))
             .collect(toList());
         assertThat(result, contains(new URI(uris.get(0)), new URI(uris.get(1))));
+    }
+
+    @Test public void throwingAtEnd_throws_an_exception_containing_both_all_successfully_computed_results_and_all_thrown_exceptions() {
+        try {
+            uris.stream()
+                .map(lazy(URI::create))
+                .collect(throwingAtEnd(IllegalArgumentException.class));
+            fail();
+        } catch (CollectException e) {
+            assertThat(e.getCauses(), contains(
+                instanceOf(IllegalArgumentException.class),
+                instanceOf(IllegalArgumentException.class)));
+            assertThat(e.getResults(), contains(URI.create(uris.get(0)), URI.create(uris.get(1)), URI.create(uris.get(3))));
+        }
     }
 
     @Test public void sneaky_makes_it_work_with_checked_exceptions() {

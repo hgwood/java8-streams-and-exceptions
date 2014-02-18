@@ -134,4 +134,30 @@ public class Bulky {
             result -> result.stream()
         );
     }
+
+    public static <T> Collector<Supplier<T>, CollectException, Stream<T>> throwingAtEnd(Class<? extends RuntimeException> exceptionClassesToCatch) {
+        Collection<Throwable> exceptions = new ArrayList<>();
+        Collection<T> results = new ArrayList<>();
+        return Collector.of(
+            () -> new CollectException(exceptions, results),
+            (accumulator, element) -> {
+                try {
+                    accumulator.getResults().add(element.get());
+                } catch (RuntimeException e) {
+                    if (e.getClass().equals(exceptionClassesToCatch)) accumulator.getCauses().add(e);
+                }
+            },
+            (left, right) -> {
+                left.getCauses().addAll(right.getCauses());
+                left.getResults().addAll(right.getResults());
+                return left; },
+            accumulator -> {
+                if (accumulator.getCauses().isEmpty()) {
+                    return ((Collection<T>)accumulator.getResults()).stream();
+                } else {
+                    throw accumulator;
+                }
+            }
+        );
+    }
 }
