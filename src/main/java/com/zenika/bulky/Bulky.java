@@ -127,7 +127,7 @@ public class Bulky {
                 try {
                     accumulator.add(element.get());
                 } catch (RuntimeException e) {
-                    if (e.getClass().equals(exceptionClassesToCatch)) throw new CollectException(e.getCause(), accumulator);
+                    if (e.getClass().equals(exceptionClassesToCatch)) throw new CollectException(e, accumulator);
                 }
             },
             (left, right) -> { left.addAll(right); return left; },

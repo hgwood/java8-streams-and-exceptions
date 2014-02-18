@@ -61,7 +61,7 @@ public class AcceptanceTest
                 .collect(upToAndThrow(IllegalArgumentException.class));
             fail();
         } catch (CollectException e) {
-            assertThat(e.getCause(), instanceOf(URISyntaxException.class));
+            assertThat(e.getCause(), instanceOf(IllegalArgumentException.class));
             assertThat(e.getResults(), contains(URI.create(uris.get(0)), URI.create(uris.get(1))));
         }
     }
