@@ -1,20 +1,33 @@
 = Experimenting with Java 8, streams and exceptions
 Hugo Wood <hx4.5@free.fr>
 
-The stream API, being FP-inspired, doesn't play with exceptions very well. For example let's say we want to map a set
-of URI strings to URI objects:
+The stream API, being FP-inspired, doesn't play with exceptions very well.
+
+For example let's say we want to map a set of URI strings to URI objects:
 [source,java]
 ----
 uriStrings.stream().map(URI::create).collect(toList());
 ----
 
 If one of the strings is not a valid URL, +map()+ still runs OK because it does nothing but register the map operation,
-however, the +toList()+ collector does call +URI::create+, which throws an +IllegalArgumentException+ and the overall
-operation fails without hope of retrieving the URIs that were valid.
+however, +collect()+ does call +URI::create+, which throws an +IllegalArgumentException+ and the overall operation
+fails without hope of retrieving the URIs that were valid. A custom collector cannot solve this issue because
++collect()+ computes the value *before* it hands it to the collector.
 
-The code in this repository is my attempt to solve this problem. The idea is simple: the collector has to be able to
-control when the exception-throwing operation is called in order to catch exceptions and process them, so the call has
-to be delayed. To achieve this, values are mapped to supplier of values.
+The code in this repository is my attempt to solve this problem. The idea is that the collector has to be able to
+control when the exception-throwing function is called in order to catch exceptions and process them, so the call has
+to be delayed. To achieve this, values are mapped to supplier of values using a method I called +lazy+:
+[source,java]
+----
+public static <T, R> Function<T, Supplier<R>> lazy(Function<T, R> f) {
+    return input -> () -> f.apply(input);
+}
+----
+
+Notice that +f.apply()+ is never called inside lazy, nor is it called when the returned function is called. Mapping a
++lazy()+-wrapped +A -> B+ function onto a stream of ++A++s results in a stream of suppliers of ++B++s. A downstream
+collector therefore gets to work with suppliers instead of values (URIs in the example). The collector can then choose
+to call (or not call) +Supplier::get+ and properly catch exceptions thrown by it.
 
 == Examples
 
@@ -23,10 +36,12 @@ to be delayed. To achieve this, values are mapped to supplier of values.
 Collection<String> data = asList("http://zenika", "invalid\nurl", "http://devoxx");
 
 data.stream()
-    // lazy() wraps URI::create into a function that returns suppliers, in order to delay the call to URI::create
+    // lazy() wraps URI::create into a function that returns suppliers, in order to delay the call
+    // to URI::create. lazy() looks like
     .map(lazy(URI::create))
-    // the collector can consequently catch the exceptions and swallow them, effectively collecting only valid URIs
-    // the exception to swallow has to be specified in order to correctly propagate other runtime exceptions
+    // the collector can consequently catch the exceptions and swallow them, effectively collecting
+    // only valid URIs the exception to swallow has to be specified in order to correctly propagate
+    // other runtime exceptions
     .collect(discarding(IllegalArgumentException.class));
 // => Stream(URI("http://zenika"), URI("http://devoxx"))
 
@@ -39,8 +54,8 @@ data.stream()
 try {
     data.stream()
         .map(lazy(URI::create))
-        // this collector propagates the first thrown exception, but valid URIs that have already been processed are
-        //accessible
+        // this collector propagates the first thrown exception, but valid URIs that have already
+        // been processed are accessible
         .collect(uptoAndThrow(IllegalArgumentException.class));
 catch (FailFastCollectException e) {
     // => e.getCause() returns the IllegalArgumentException
@@ -50,8 +65,8 @@ catch (FailFastCollectException e) {
 try {
     data.stream()
         .map(lazy(URI::create))
-        // this collector reads the whole stream and collects all valid URIs as well as all the exceptions that were
-        // thrown.
+        // this collector reads the whole stream and collects all valid URIs as well as all the
+        // exceptions that were thrown.
         .collect(throwingAtEnd(IllegalArgumentException.class));
 catch (CollectException e) {
     // => e.getCauses() returns Collection(IllegalArgumentException)
