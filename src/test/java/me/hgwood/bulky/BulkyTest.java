@@ -1,17 +1,16 @@
 package me.hgwood.bulky;
 
-import me.hgwood.bulky.FailAtEndCollectException;
-import me.hgwood.bulky.FailFastCollectException;
 import org.junit.Test;
 
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
-import static me.hgwood.bulky.Bulky.*;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
-import static org.hamcrest.Matchers.*;
+import static me.hgwood.bulky.Bulky.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
