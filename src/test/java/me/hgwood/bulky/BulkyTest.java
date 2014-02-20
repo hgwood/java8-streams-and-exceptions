@@ -1,19 +1,21 @@
-package com.zenika.bulky;
+package me.hgwood.bulky;
 
+import me.hgwood.bulky.FailAtEndCollectException;
+import me.hgwood.bulky.FailFastCollectException;
 import org.junit.Test;
 
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
-import static com.zenika.bulky.Bulky.*;
+import static me.hgwood.bulky.Bulky.*;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-public class AcceptanceTest
+public class BulkyTest
 {
     private final List<String> uris = asList(
         "http://validUri",

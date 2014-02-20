@@ -1,4 +1,4 @@
-package com.zenika.bulky;
+package me.hgwood.bulky;
 
 import java.util.Collection;
 

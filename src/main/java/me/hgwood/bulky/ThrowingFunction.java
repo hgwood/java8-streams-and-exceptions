@@ -1,4 +1,4 @@
-package com.zenika.bulky;
+package me.hgwood.bulky;
 
 public interface ThrowingFunction<T, R> {
 

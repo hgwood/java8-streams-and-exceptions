@@ -1,4 +1,4 @@
-package com.zenika.bulky;
+package me.hgwood.bulky;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 import static java.util.Arrays.asList;
 
 /**
- * @see com.zenika.bulky.Bulky#upTo(Class[])
+ * @see Bulky#upTo(Class[])
  */
 public class UpToFailureCollector<T> implements Collector<Supplier<T>, Collection<T>, Stream<T>> {
 

@@ -1,4 +1,4 @@
-package com.zenika.bulky;
+package me.hgwood.bulky;
 
 import com.google.common.collect.ImmutableList;
 
@@ -15,7 +15,7 @@ public class Bulky {
 
     /**
      * Wraps a function that throws checked exceptions into a function that does not, by wrapping checked exceptions
-     * into an unchecked {@link com.zenika.bulky.WrappedException}. Optionally, can also wrap some specified unchecked
+     * into an unchecked {@link WrappedException}. Optionally, can also wrap some specified unchecked
      * exceptions.
      * <p>
      *     This method is useful to pass throwing lambdas and method references to the {@link java.util.stream.Stream}
@@ -26,7 +26,7 @@ public class Bulky {
      * @param <T> input type of the wrapped function
      * @param <R> output type of the wrapped function
      * @return a function that does the same thing as f, except it will throw the unchecked
-     * {@link com.zenika.bulky.WrappedException} when the original function would have thrown checked exceptions
+     * {@link WrappedException} when the original function would have thrown checked exceptions
      */
     public static <T, R> Function<T, R> sneaky(
             ThrowingFunction<T, R> f, Class<? extends RuntimeException>... runtimeExceptionClassesToWrap) {
@@ -118,7 +118,7 @@ public class Bulky {
     }
 
     /**
-     * Same as {@link #discarding(Class[])} but only {@link com.zenika.bulky.WrappedException} is treated as a failure.
+     * Same as {@link #discarding(Class[])} but only {@link WrappedException} is treated as a failure.
      * Designed to be used in conjonction with {@link #sneaky(ThrowingFunction, Class[])} with no exceptions specified.
      * @param <T> type of the results
      */
@@ -138,7 +138,7 @@ public class Bulky {
     }
 
     /**
-     * Same as {@link #upTo(Class[])} but {@link com.zenika.bulky.WrappedException} is treated as a failure.
+     * Same as {@link #upTo(Class[])} but {@link WrappedException} is treated as a failure.
      * Designed to be used in conjonction with {@link #sneaky(ThrowingFunction, Class[])} with no exceptions specified.
      * @param <T> type of the results
      */
@@ -148,7 +148,7 @@ public class Bulky {
 
     /**
      * Returns a collector that only computes and retains results until one of the specified exception is raised.
-     * The exception is then wrapped and thrown as a {@link com.zenika.bulky.FailFastCollectException} also containing
+     * The exception is then wrapped and thrown as a {@link FailFastCollectException} also containing
      * the computed results.
      * @param failures exceptions that should interrupt the overall operation
      * @param <T> type of the results
@@ -173,7 +173,7 @@ public class Bulky {
 
     /**
      * Returns a collector that consumes the entire stream even if an exception is thrown, but throws
-     * {@link com.zenika.bulky.FailAtEndCollectException} at the end if it was the case. All successfully computed
+     * {@link FailAtEndCollectException} at the end if it was the case. All successfully computed
      * results and all thrown exceptions are accessible through {@link FailAtEndCollectException#getResults()} and
      * {@link FailAtEndCollectException#getCauses()}. If no exception is thrown before the end of the stream, a new
      * stream with the results is returned.
