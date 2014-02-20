@@ -33,7 +33,7 @@ to call (or not call) +Supplier::get+ and properly catch exceptions thrown by it
 
 [source,java]
 ----
-Collection<String> data = asList("http://zenika", "invalid\nurl", "http://devoxx");
+Collection<String> data = asList("http://elevated", "invalid\nurl", "http://abstractions");
 
 data.stream()
     // lazy() wraps URI::create into a function that returns suppliers, in order to delay the call
@@ -43,14 +43,14 @@ data.stream()
     // only valid URIs. The exception to swallow has to be specified in order to correctly propagate
     // other runtime exceptions.
     .collect(discarding(IllegalArgumentException.class));
-// => Stream(URI("http://zenika"), URI("http://devoxx"))
+// => Stream(URI("http://elevated"), URI("http://abstractions"))
 
 data.stream()
     .map(lazy(URI::create))
     // This collector swallows the exception too, but it does not continue to read the stream once
     // the first one is thrown.
     .collect(upto(IllegalArgumentException.class));
-// => Stream(URI("http://zenika"))
+// => Stream(URI("http://elevated"))
 
 try {
     data.stream()
@@ -60,7 +60,7 @@ try {
         .collect(uptoAndThrow(IllegalArgumentException.class));
 catch (FailFastCollectException e) {
     // => e.getCause() returns the IllegalArgumentException
-    // => e.getResults() returns Stream(URI("http://zenika"))
+    // => e.getResults() returns Stream(URI("http://elevated"))
 }
 
 try {
@@ -71,7 +71,7 @@ try {
         .collect(throwingAtEnd(IllegalArgumentException.class));
 catch (CollectException e) {
     // => e.getCauses() returns Collection(IllegalArgumentException)
-    // => e.getResults() returns Stream(URI("http://zenika"), URI("http://devoxx"))
+    // => e.getResults() returns Stream(URI("http://elevated"), URI("http://abstractions"))
 }
 ----
 
