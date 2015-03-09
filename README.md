@@ -1,11 +1,6 @@
----
-title: Experimenting with Java 8, streams and exceptions
-date: 2014-02-20 12:04
----
+Java 8's new Stream API, being FP-inspired, doesn't play with exceptions very well.
 
-The stream API, being FP-inspired, doesn't play with exceptions very well.
-
-For example let's say we want to map a set of URI strings to URI objects:
+For example, let's say we want to map a set of URI strings to URI objects:
 
 ```java
 uriStrings.stream().map(URI::create).collect(toList());
@@ -109,4 +104,10 @@ data.stream()
     .collect(discardingFailures());
 ```
 
-The code's on <a href="https://github.com/hgwood/java8-streams-and-exceptions">GitHub</a>.
+# Acknowledgement
+
+The motivation for this experiment was triggered by the work of Yohan Legat, a co-worker at 
+http://zenika.com[Zenika]. His work is also on 
+https://github.com/Zenika/Blogs/tree/master/20140214-Try[GitHub] 
+and he wrote a article (in French) on 
+http://blog.zenika.com/index.php?post/2014/02/19/Repenser-la-propagation-des-exceptions-avec-Java-8[Zenika's technical blog].
