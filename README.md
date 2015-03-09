@@ -107,7 +107,7 @@ data.stream()
 # Acknowledgement
 
 The motivation for this experiment was triggered by the work of Yohan Legat, a co-worker at 
-http://zenika.com[Zenika]. His work is also on 
-https://github.com/Zenika/Blogs/tree/master/20140214-Try[GitHub] 
+[Zenika](http://zenika.com). His work is also on 
+[GitHub](https://github.com/Zenika/Blogs/tree/master/20140214-Try) 
 and he wrote a article (in French) on 
-http://blog.zenika.com/index.php?post/2014/02/19/Repenser-la-propagation-des-exceptions-avec-Java-8[Zenika's technical blog].
+[Zenika's technical blog](http://blog.zenika.com/index.php?post/2014/02/19/Repenser-la-propagation-des-exceptions-avec-Java-8).
